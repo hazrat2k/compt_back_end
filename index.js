@@ -42,7 +42,7 @@ const db = createConnection({
 
 let clientOpts = {};
 
-clientOpts = { libDir: "C:\\oracle\\instantclient_23_5" };
+clientOpts = { libDir: "/usr/lib/oracle/23/client64/lib" };
 
 oracledb.initOracleClient(clientOpts);
 
