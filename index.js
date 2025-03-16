@@ -4,6 +4,8 @@ import oracledb from "oracledb";
 import cors from "cors";
 import multer from "multer";
 import path from "path";
+import os from 'os'; 
+
 
 const app = express();
 
@@ -42,7 +44,15 @@ const db = createConnection({
 
 let clientOpts = {};
 
-clientOpts = { libDir: "/usr/lib/oracle/23/client64/lib" };
+if (os.platform() === 'win32') {
+    // Windows-specific path
+    clientOpts = { libDir: "C:\\oracle\\instantclient_23_7" };
+} else if (os.platform() === 'linux') {
+    // Linux-specific path
+    clientOpts = { libDir: "/usr/lib/oracle/23/client64/lib" };
+}
+
+// clientOpts = { libDir: "/usr/lib/oracle/23/client64/lib" };
 
 oracledb.initOracleClient(clientOpts);
 
