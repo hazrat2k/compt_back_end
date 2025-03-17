@@ -4,8 +4,7 @@ import oracledb from "oracledb";
 import cors from "cors";
 import multer from "multer";
 import path from "path";
-import os from 'os'; 
-
+import os from "os";
 
 const app = express();
 
@@ -44,10 +43,10 @@ const db = createConnection({
 
 let clientOpts = {};
 
-if (os.platform() === 'win32') {
+if (os.platform() === "win32") {
     // Windows-specific path
     clientOpts = { libDir: "C:\\oracle\\instantclient_23_7" };
-} else if (os.platform() === 'linux') {
+} else if (os.platform() === "linux") {
     // Linux-specific path
     clientOpts = { libDir: "/usr/lib/oracle/23/client64/lib" };
 }
@@ -756,6 +755,20 @@ app.get("/get_employee_compt_info", (req, res) => {
         })
         .catch((dberr) => {
             console.log("read - /get_employee_compt_info - EMPLOYEE");
+            res.send(dberr);
+        });
+});
+
+app.get("/get_notices", (req, res) => {
+    // const accountNo = req.body.ACCOUNT_NO;
+    const q = `SELECT * FROM WEB_NOTICE`;
+
+    run(q)
+        .then((dbres) => {
+            res.json(dbres);
+        })
+        .catch((dberr) => {
+            console.log("read - /get_notices - WEB_NOTICE");
             res.send(dberr);
         });
 });
