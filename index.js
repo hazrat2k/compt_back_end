@@ -33,14 +33,6 @@ const loanPersonnel = [
     "acct_cash",
     "acct_fund",
 ];
-
-const db = createConnection({
-    host: "localhost",
-    user: "root",
-    password: "a1234A@#",
-    database: "consumer_loan",
-});
-
 let clientOpts = {};
 
 if (os.platform() === "win32") {
@@ -122,7 +114,6 @@ app.post("/application_login", (req, res) => {
         "' AND DATE_OF_BIRTH = TO_DATE('" +
         dob +
         "','MM/DD/YYYY')";
-
     run(q)
         .then((dbres) => {
             res.json(dbres);
@@ -577,7 +568,7 @@ app.get("/account_list", (req, res) => {
             res.json(dbres);
         })
         .catch((dberr) => {
-            console.log("read - /account_list - TAHBIL_NAME");
+            console.log("Error reading - /account_list - TAHBIL_NAME");
             res.send(dberr);
         });
 });
@@ -633,16 +624,52 @@ app.get("/get_transaction_id", (req, res) => {
         });
 });
 
-app.get("/get_unapproved_transaction", (req, res) => {
+app.post("/trans_id_search", (req, res) => {
+    //console.log("req.body:", req.body);
+    const transIdIndv = req.body.EntryId;
+
     const q =
-        "SELECT a.TRANSACTION_ID, a.ACCOUNT_NO, a.ACCOUNT_NAME, a.MAIN_CODE_NO, b.MAIN_CODE_DESCRIPTION, a.SUB_CODE_NO, c.SUB_CODE_DESCRIPTION, a.VOUCHER_SCROLL_NO, a.VOUCHER_DESCRIPTION, a.VOUCHER_DATE, a.INCOME, a.EXPENSE, a.FIN_YEAR, a.ENTRY_DATE, a.ENTRY_USER, a.CHK_NO, a.CHK_DATE FROM TAHBIL_CASHBOOK a, TAHBIL_CODE_DESCRIPTION b, TAHBIL_NAME_SUB_HEAD c WHERE a.ACCOUNT_NO = b.ACCOUNT_NO AND b.ACCOUNT_NO = c.ACCOUNT_NO AND a.MAIN_CODE_NO = b.MAIN_CODE_NO AND b.MAIN_CODE_NO = c.MAIN_CODE_NO AND a.SUB_CODE_NO = c.SUB_CODE_NO AND a.APPROVED_USER IS NULL ORDER BY a.TRANSACTION_ID DESC";
+        "SELECT * FROM TAHBIL_CASHBOOK a WHERE a.APPROVED_USER IS NULL AND a.TRANSACTION_ID =" +
+        transIdIndv +
+        "";
+
+    run(q)
+        .then((dbres) => {
+            //console.log("Hello Connected - /trans_id_search - TAHBIL_CASHBOOK");
+            res.json(dbres);
+        })
+        .catch((dberr) => {
+            console.log("Error reading - /trans_id_search - TAHBIL_CASHBOOK");
+            //console.log("Transaction ID:", transIdIndv);
+            res.send(dberr);
+        });
+});
+
+app.get("/get_unapproved_transaction", (req, res) => {
+    const q = `
+            SELECT 
+                a.TRANSACTION_ID, a.ACCOUNT_NO, a.ACCOUNT_NAME, a.MAIN_CODE_NO,
+                b.MAIN_CODE_DESCRIPTION, a.SUB_CODE_NO, c.SUB_CODE_DESCRIPTION,
+                a.VOUCHER_SCROLL_NO, a.VOUCHER_DESCRIPTION, a.VOUCHER_DATE,
+                a.INCOME, a.EXPENSE, a.FIN_YEAR, a.ENTRY_DATE, a.ENTRY_USER,
+                a.CHK_NO, a.CHK_DATE
+            FROM TAHBIL_CASHBOOK a
+            JOIN TAHBIL_CODE_DESCRIPTION b
+                ON a.ACCOUNT_NO = b.ACCOUNT_NO AND a.MAIN_CODE_NO = b.MAIN_CODE_NO
+            JOIN TAHBIL_NAME_SUB_HEAD c
+                ON b.ACCOUNT_NO = c.ACCOUNT_NO AND b.MAIN_CODE_NO = c.MAIN_CODE_NO
+                AND a.SUB_CODE_NO = c.SUB_CODE_NO
+            WHERE a.APPROVED_USER IS NULL
+            ORDER BY a.TRANSACTION_ID DESC`;
 
     run(q)
         .then((dbres) => {
             res.json(dbres);
         })
         .catch((dberr) => {
-            console.log("read - /get_unapproved_transaction - TAHBIL_CASHBOOK");
+            console.log(
+                "Error reading - /get_unapproved_transaction - TAHBIL_CASHBOOK"
+            );
             res.send(dberr);
         });
 });
@@ -685,21 +712,26 @@ app.post("/get_max_sub_code", (req, res) => {
 });
 
 app.get("/get_total_income_expense", (req, res) => {
-    // const accountNo = req.body.ACCOUNT_NO;
-    const q = `SELECT 
-                    B.MAIN_CODE_DESCRIPTION,  
-                    SUM(A.INCOME) AS TOTAL_INCOME,
-                    SUM(A.EXPENSE) AS TOTAL_EXPENSE
-                FROM 
-                    TAHBIL_CASHBOOK A
-                JOIN 
-                    TAHBIL_CODE_DESCRIPTION B 
-                    ON A.ACCOUNT_NO = B.ACCOUNT_NO 
-                    AND A.MAIN_CODE_NO = B.MAIN_CODE_NO
-                WHERE 
-                    A.APPROVED_USER IS NOT NULL  
-                GROUP BY 
-                    B.MAIN_CODE_DESCRIPTION`;
+    const q = `WITH INCOME_DATA AS
+     (SELECT TRANSACTION_ID, D.MAIN_CODE_NO, MAIN_CODE_DESCRIPTION, INCOME,
+             ROW_NUMBER () OVER (ORDER BY TRANSACTION_ID) AS RN
+        FROM TAHBIL_CASHBOOK C, TAHBIL_CODE_DESCRIPTION D
+       WHERE EXPENSE = 0
+         AND C.ACCOUNT_NO = D.ACCOUNT_NO
+         AND C.MAIN_CODE_NO = D.MAIN_CODE_NO),
+     EXPENSE_DATA AS
+     (SELECT TRANSACTION_ID, D.MAIN_CODE_NO, MAIN_CODE_DESCRIPTION, EXPENSE,
+             ROW_NUMBER () OVER (ORDER BY TRANSACTION_ID) AS RN
+        FROM TAHBIL_CASHBOOK C, TAHBIL_CODE_DESCRIPTION D
+       WHERE INCOME=0
+         AND C.ACCOUNT_NO = D.ACCOUNT_NO
+         AND C.MAIN_CODE_NO = D.MAIN_CODE_NO)
+SELECT   I.TRANSACTION_ID AS IN_TRANS_ID, I.MAIN_CODE_NO AS IN_CODE,
+         I.MAIN_CODE_DESCRIPTION AS IN_DESC, I.INCOME AS IN_AMOUNT,
+         E.TRANSACTION_ID AS EX_TRANS_ID, E.MAIN_CODE_NO AS EX_CODE,
+         E.MAIN_CODE_DESCRIPTION AS EX_DESC, E.EXPENSE AS EX_AMOUNT
+    FROM INCOME_DATA I FULL OUTER JOIN EXPENSE_DATA E ON I.RN = E.RN
+ORDER BY I.RN NULLS FIRST`;
 
     run(q)
         .then((dbres) => {
@@ -738,7 +770,6 @@ app.post("/get_total_expense", (req, res) => {
 });
 
 app.get("/get_employee_compt_info", (req, res) => {
-    // const accountNo = req.body.ACCOUNT_NO;
     const q = `SELECT A.EMPLOYEEID, A.EMPLOYEE_NAME, A.DESIGNATION, 
                 B.SECTION_NAME, B.CONTACT_NO, B.MOBILE_NO, B.MAIL_ACC,
                 B.PHOTO_LINK, B.ORDER_IN    
@@ -761,7 +792,7 @@ app.get("/get_employee_compt_info", (req, res) => {
 
 app.get("/get_notices", (req, res) => {
     // const accountNo = req.body.ACCOUNT_NO;
-    const q = `SELECT * FROM WEB_NOTICE`;
+    const q = `SELECT * FROM WEB_NOTICE ORDER BY NOTICE_DATE DESC`;
 
     run(q)
         .then((dbres) => {
@@ -769,6 +800,46 @@ app.get("/get_notices", (req, res) => {
         })
         .catch((dberr) => {
             console.log("read - /get_notices - WEB_NOTICE");
+            res.send(dberr);
+        });
+});
+// New Project from Hazrat Ali---------------------------------
+
+app.get("/get_download_link", (req, res) => {
+    const q = `select serial_no,description from web_download`;
+    run(q)
+        .then((dbres) => {
+            res.json(dbres);
+        })
+        .catch((dberr) => {
+            console.log("read - /get_download_link - web_download");
+            res.send(dberr);
+        });
+});
+
+app.get("/reactFirst_access_data", (req, res) => {
+    const q =
+        "select employee_name from employee e where e.employee_id= '" +
+        buetId +
+        "'";
+});
+
+// End Project from Hazrat Ali---------------------------------
+
+app.post("/get_all_transaction_by_account_no", (req, res) => {
+    const accountNo = req.body.ACCOUNT_NO;
+    const q = `SELECT *
+                FROM TAHBIL_CASHBOOK C
+                WHERE C.ACCOUNT_NO = '${accountNo}'`;
+
+    run(q)
+        .then((dbres) => {
+            res.json(dbres);
+        })
+        .catch((dberr) => {
+            console.log(
+                "read - /get_all_transaction_by_account_no - TAHBIL_CASHBOOK"
+            );
             res.send(dberr);
         });
 });
@@ -1385,6 +1456,6 @@ app.put("/update_approved_user", (req, res) => {
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  - - - - - - -
 app.put("/rejBack", (req, res) => {});
 
-app.listen(8800, () => {
-    console.log("Connected to Oracle backend! ");
+app.listen(8800, "0.0.0.0", () => {
+    console.log("Connected to Oracle backend!");
 });
