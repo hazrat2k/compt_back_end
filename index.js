@@ -1474,6 +1474,11 @@ app.put("/update_approved_user", (req, res) => {
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  - - - - - - -
 app.put("/rejBack", (req, res) => {});
 
+<<<<<<< HEAD
 app.listen(8800, "0.0.0.0", () => {
     console.log("Connected to Oracle backend!");
+=======
+app.listen(8800,'0.0.0.0', () => {
+    console.log("Connected to Oracle backend! ");
+>>>>>>> 11b853d (Index Change)
 });
