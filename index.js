@@ -742,6 +742,22 @@ ORDER BY I.RN NULLS FIRST`;
             res.send(dberr);
         });
 });
+//Openning and Closing Balance
+app.get("/openningClosing_balance", (req, res) => {
+    const q =
+        "SELECT * FROM TAHBIL_OPENING_BALANCE T WHERE T.ACCOUNT_NAME='Benevolent Fund'";
+
+    run(q)
+        .then((dbres) => {
+            res.json(dbres);
+            //console.log("Connected - /openningClosing_balance");
+        })
+        .catch((dberr) => {
+            console.log("Error reading - /openningClosing_balance");
+            res.send(dberr);
+        });
+});
+//Openning and Closing Balance
 
 app.post("/get_total_expense", (req, res) => {
     const accountNo = req.body.ACCOUNT_NO;
@@ -752,7 +768,7 @@ app.post("/get_total_expense", (req, res) => {
                     TAHBIL_CASHBOOK A
                 JOIN 
                     TAHBIL_CODE_DESCRIPTION B 
-                    ON A.ACCOUNT_NO = B.ACCOUNT_NO 
+                    ON A.ACCOUNT_NO = B.ACCOUNT_NO
                     AND A.MAIN_CODE_NO = B.MAIN_CODE_NO
                 WHERE 
                     A.APPROVED_USER IS NOT NULL AND A.ACCOUNT_NO = '${accountNo}' AND A.EXPENSE > 0
@@ -1143,8 +1159,10 @@ app.post("/final_loan_register", (req, res) => {
 });
 
 app.post("/cash_book_insert", (req, res) => {
-    const q =
-        "INSERT INTO TAHBIL_CASHBOOK (TRANSACTION_ID, ACCOUNT_NO, ACCOUNT_NAME, MAIN_CODE_NO, SUB_CODE_NO, VOUCHER_DESCRIPTION, VOUCHER_SCROLL_NO, VOUCHER_DATE, EXPENSE, INCOME, ENTRY_DATE, FIN_YEAR, ENTRY_USER, CHK_NO, CHK_DATE) VALUES (:0, :1, :2, :3, :4, :5, :6, TO_DATE(:7,'MM/DD/YYYY'), :8, :9, TO_DATE(:10,'MM/DD/YYYY'), :11, :12, :13, TO_DATE(:14,'MM/DD/YYYY'))";
+    const q = `INSERT INTO TAHBIL_CASHBOOK (TRANSACTION_ID, ACCOUNT_NO, ACCOUNT_NAME, MAIN_CODE_NO, SUB_CODE_NO, 
+        VOUCHER_DESCRIPTION, VOUCHER_SCROLL_NO, VOUCHER_DATE, EXPENSE, INCOME, ENTRY_DATE, FIN_YEAR, ENTRY_USER, 
+        CHK_NO, CHK_DATE) VALUES (:0, :1, :2, :3, :4, :5, :6, TO_DATE(:7,'MM/DD/YYYY'), :8, :9, 
+            TO_DATE(:10,'MM/DD/YYYY'), :11, :12, :13, TO_DATE(:14,'MM/DD/YYYY'))`;
 
     const values = [
         req.body.TRANSACTION_ID,
