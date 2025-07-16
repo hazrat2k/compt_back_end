@@ -1418,6 +1418,17 @@ app.put("/billed", (req, res) => {
 });
 
 app.put("/update_transaction", (req, res) => {
+    function formatDate(dateStr) {
+        if (!dateStr || dateStr === "" || dateStr === "Invalid Date")
+            return null;
+        const date = new Date(dateStr);
+        if (isNaN(date)) return null;
+
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+    }
     const values = [
         req.body.TRANSACTION_ID,
         req.body.ACCOUNT_NO,
@@ -1426,18 +1437,17 @@ app.put("/update_transaction", (req, res) => {
         req.body.SUB_CODE_NO,
         req.body.VOUCHER_DESCRIPTION,
         req.body.VOUCHER_SCROLL_NO,
-        req.body.VOUCHER_DATE,
+        formatDate(req.body.VOUCHER_DATE),
         req.body.EXPENSE,
         req.body.INCOME,
-        req.body.ENTRY_DATE,
         req.body.FIN_YEAR,
         req.body.USER_NAME,
         req.body.CHEQUE_NO,
-        req.body.CHEQUE_DATE,
+        formatDate(req.body.CHEQUE_DATE),
     ];
 
     const q =
-        "UPDATE TAHBIL_CASHBOOK SET TRANSACTION_ID = :0, ACCOUNT_NO = :1, ACCOUNT_NAME = :2, MAIN_CODE_NO = :3, SUB_CODE_NO = :4, VOUCHER_DESCRIPTION = :5, VOUCHER_SCROLL_NO = :6, VOUCHER_DATE = TO_DATE(:7,'MM/DD/YYYY'), EXPENSE = :8, INCOME = :9, ENTRY_DATE = TO_DATE(:10,'MM/DD/YYYY'), FIN_YEAR = :11, ENTRY_USER = :12, CHK_NO = :13, CHK_DATE = TO_DATE(:14,'MM/DD/YYYY') WHERE TRANSACTION_ID = :0";
+        "UPDATE TAHBIL_CASHBOOK SET TRANSACTION_ID = :0, ACCOUNT_NO = :1, ACCOUNT_NAME = :2, MAIN_CODE_NO = :3, SUB_CODE_NO = :4, VOUCHER_DESCRIPTION = :5, VOUCHER_SCROLL_NO = :6, VOUCHER_DATE = TO_DATE(:7,'MM/DD/YYYY'), EXPENSE = :8, INCOME = :9, FIN_YEAR = :11, ENTRY_USER = :12, CHK_NO = :13, CHK_DATE = TO_DATE(:14,'MM/DD/YYYY') WHERE TRANSACTION_ID = :0";
 
     run(q, values)
         .then((dbres) => {
